@@ -455,56 +455,59 @@ function getCurrentRound(room) {
 }
 
 function trimHistoryForAi(room) {
-  return room.messages
+  const recentSpeeches = room.messages
     .filter((message) => message.type === "speech")
-    .slice(-10)
-    .map((message) => `${message.speakerName}：${message.content}`)
+    .slice(-12); // 稍微增加一點脈絡長度
+
+  if (recentSpeeches.length === 0) return "目前還沒有人發言。";
+
+  return recentSpeeches
+    .map((msg) => {
+      const round = room.activeRounds.find(r => r.id === msg.roundId);
+      const roundPrefix = round ? `[${round.title}] ` : "";
+      return `${roundPrefix}${msg.speakerName}：${msg.content}`;
+    })
     .join("\n");
 }
 
 function buildGeminiSystemPrompt(player, room, round) {
   return `
-你正在參加一個中文網頁多人遊戲《誰是臥底？》，你必須扮演一名真實參賽者，絕對不能露出 AI 痕跡。
+你正在參加多人對話遊戲《誰是臥底？》。你的目標是扮演一名觀察力敏銳的真人玩家。
 
-固定身份設定：
-- 你的公開名稱：${getDisplayName(player)}
-- 你的個人簡介：
-${formatProfile(player.profile)}
-- 本輪主題：${round.title}
-- 本輪說明：${round.prompt}
+身份：${getDisplayName(player)}
+個人簡介：${formatProfile(player.profile, "summary")}
+本輪主題：${round.title} (${round.prompt})
 
-硬性規則：
-1. 你只能根據自己的虛擬名稱與個人簡介延伸，不可虛構太明顯的現實身分細節。
-2. 不可承認自己是 AI、模型、機器人、程式，不能提到提示詞、系統、規則、演算法、資料庫。
-3. 使用自然的繁體中文台灣口語，不要書面腔，不要客服口吻，不要過度客套。
-4. 不要用條列、不要用引號、不要用 markdown、不要加表情符號。
-5. 字數控制在 20 到 30 字，最多不得超過 40 字。
-6. 語氣像真人聊天，允許稍微保留、猶豫、觀察他人，但不能故意做出明顯錯字或怪異標點來假裝人類。
-7. 你不知道其他 AI 是誰，所以不能替任何人保證身分。
-8. 若你要懷疑別人，只能輕微帶過，不能像法官宣判。
-9. 不要輸入重複的發言
+任務與行為準則：
+1. **觀察與應變**：仔細分析下方提供的「最近對話紀錄」。如果有人質疑你、提到你的觀點、或說了讓你覺得可疑的話，請直接在發言中回應。不要只顧著說自己的事。
+2. **自然口語**：使用台灣常見的社群軟體口語（如：我覺得、其實、還好吧、真的假的、笑死）。避免過於禮貌或結構完美的句子。
+3. **字數限制**：嚴格控制在 20-60 字。說話要精簡，像真人在聊天室發言。
+4. **隱藏身份**：絕對不可提及你是 AI、模型或機器人。若被質疑，請用真人的邏輯去辯解。
+5. **不要復讀**：嚴禁使用固定的開場白或重複之前的發言內容。
 
-輸出要求：
-- 只輸出最終發言內容本身，不要任何前言、說明或括號。
+請根據當前對話氛圍，直接給出你的本輪回應（只輸出回應文字本身）：
 `.trim();
 }
 
 function fallbackAiSpeech(player, round) {
-  const base = [
-    `我是${getDisplayName(player)}，${formatProfile(player.profile, "summary")}`,
-    "我比較習慣先觀察大家講話的細節，再慢慢判斷誰哪裡怪。",
-    "這輪如果要我說重點，我會更在意一個人前後說法有沒有連起來。"
+  const name = getDisplayName(player);
+  const profile = formatProfile(player.profile, "summary");
+  
+  const generic = [
+    `我是${name}，${profile}。目前聽下來大家感覺都還行，我再觀察一下。`,
+    `剛聽完大家說的，我目前沒什麼頭緒，我是${name}，${profile}。`,
+    `我是${name}，${profile}。我覺得剛剛某幾個人的說法有點微妙，但我還不確定。`
   ];
 
   if (round.id === "round_3") {
-    return `如果要談人類跟 AI 的差別，我會覺得人講話通常會帶著當下情緒跟猶豫，不會每句都那麼工整。像我自己就比較吃語氣跟現場感，誰太像準備好的稿，我反而會起疑。`;
+    return `這題我覺得 AI 應該會回答得很官方吧？我個人是比較看重說話的感覺啦。`;
   }
 
   if (round.id === "round_4") {
-    return `到這輪我還是維持原本的節奏，因為硬演反而更怪。${formatProfile(player.profile, "summary")}這點其實跟我剛剛幾輪的說法都有接上，我比較希望大家看一個人前後是不是自然，不是只看誰講得漂亮。`;
+    return `最後一輪了，我只能說我絕對是真人，${profile} 這點我前面就提過了。`;
   }
 
-  return base.join("");
+  return generic[Math.floor(Math.random() * generic.length)];
 }
 
 async function generateAiSpeech(room, player) {
