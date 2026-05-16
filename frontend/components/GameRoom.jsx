@@ -67,21 +67,40 @@ export default function GameRoom({
   onCastVote,
   onKickPlayer
 }) {
-  const [message, setMessage] = useState("");
+  const [drafts, setDrafts] = useState({});
   const bottomRef = useRef(null);
 
   const self = room?.self;
-  const canSpeak =
+  const canDraft =
     room?.status === "in_game" &&
     (room?.phase === "speaking" || room?.phase === "tie_break_speaking") &&
-    room?.currentSpeakerId === self?.id &&
-    self?.isAlive;
+    self?.isAlive &&
+    self?.role === "human";
+  const canSpeak =
+    canDraft && room?.currentSpeakerId === self?.id;
 
   const canVote =
     room?.status === "in_game" &&
     room?.phase === "voting" &&
     self?.isAlive &&
     !room?.hasViewerVoted;
+
+  const draftKey = useMemo(() => {
+    if (!self?.id || room?.status !== "in_game") {
+      return "inactive";
+    }
+
+    return `${self.id}:${room.phase}:${room.currentRound?.id || "no_round"}`;
+  }, [room?.currentRound?.id, room?.phase, room?.status, self?.id]);
+
+  const message = drafts[draftKey] || "";
+
+  const setMessage = (value) => {
+    setDrafts((current) => ({
+      ...current,
+      [draftKey]: value
+    }));
+  };
 
   const voteTargets = useMemo(() => {
     if (!room?.players) {
@@ -105,16 +124,12 @@ export default function GameRoom({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [room?.messages]);
 
-  useEffect(() => {
-    if (!canSpeak) {
-      setMessage("");
-    }
-  }, [canSpeak]);
-
   const speakingHint = canSpeak
-    ? "輪到你發言，送出前請確認內容沒有暴露現實資訊。"
-    : self?.isAlive
-      ? "現在不是你的發言時間，傳送鍵會保持反灰。"
+    ? "輪到你發言了，確認內容後就能送出。"
+    : canDraft
+      ? "你可以先把本輪內容打好，等輪到你時再送出。"
+      : self?.isAlive
+        ? "目前不是發言階段，暫時無法編輯發言。"
       : "你已遭淘汰，目前為觀戰狀態。";
 
   return (
@@ -272,9 +287,15 @@ export default function GameRoom({
             <textarea
               value={message}
               onChange={(event) => setMessage(event.target.value.slice(0, 300))}
-              disabled={!canSpeak}
+              disabled={!canDraft}
               rows={4}
-              placeholder={canSpeak ? "輸入你的發言..." : "等待輪到你發言"}
+              placeholder={
+                canDraft
+                  ? canSpeak
+                    ? "確認本輪內容後送出"
+                    : "先打好這輪內容，輪到你時再送出"
+                  : "等待下一輪發言階段"
+              }
               className="mt-3 w-full rounded-2xl border border-white/10 bg-slate-950/80 px-4 py-3 text-sm leading-7 text-white outline-none transition placeholder:text-slate-500 focus:border-sky-400 disabled:bg-slate-900 disabled:text-slate-500"
             />
 
@@ -284,11 +305,14 @@ export default function GameRoom({
                 disabled={!canSpeak || !message.trim()}
                 onClick={() => {
                   onSendMessage(message.trim());
-                  setMessage("");
+                  setDrafts((current) => ({
+                    ...current,
+                    [draftKey]: ""
+                  }));
                 }}
                 className="min-h-12 w-full rounded-2xl bg-sky-400 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-sky-300 disabled:bg-slate-700 disabled:text-slate-400 sm:w-auto"
               >
-                送出發言
+                {canSpeak ? "送出發言" : "等待輪到你"}
               </button>
             </div>
           </div>
