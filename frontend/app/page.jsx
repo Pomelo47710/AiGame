@@ -200,7 +200,7 @@ export default function HomePage() {
                   />
                   <RuleItem
                     title="發言限制"
-                    text="每輪依序輪流發言，單次最多 300 字，禁止透露真實生活資訊、聯絡方式或明示自己是 AI。"
+                    text="每輪可先寫好自己的發言草稿，輪到自己時才能送出；單次最多 300 字，禁止透露真實生活資訊、聯絡方式或明示自己是 AI。"
                   />
                   <RuleItem
                     title="投票淘汰"
@@ -209,6 +209,10 @@ export default function HomePage() {
                   <RuleItem
                     title="勝利條件"
                     text="人類要找出並淘汰全部 AI；AI 要存活到最後，或在四輪結束後讓存活 AI 數量大於存活人類。"
+                  />
+                  <RuleItem
+                    title="房主管理"
+                    text="房主在等待開局與遊戲進行中都能移出其他真人玩家，但不能移除自己。"
                   />
                 </div>
               </div>
@@ -318,4 +322,3 @@ export default function HomePage() {
     </main>
   );
 }
-
