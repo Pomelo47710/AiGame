@@ -169,11 +169,11 @@ export default function HomePage() {
             <h1 className="mt-4 text-3xl font-black leading-tight text-amber-50 sm:text-4xl lg:text-6xl">
               誰是臥底？
               <span className="block bg-gradient-to-r from-amber-200 via-rose-200 to-orange-200 bg-clip-text text-transparent">
-                像一場有火花的朋友聚會
+                一場有火花的朋友聚會
               </span>
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-stone-200/90 sm:text-base sm:leading-8">
-              這不是冷冰冰的推理工具，而是一局適合朋友圍在一起鬥嘴、觀察、互相試探的派對遊戲。
+              這是一局適合朋友圍在一起鬥嘴、觀察、互相試探的派對遊戲。
               每位玩家都會拿到一張身份卡，在四輪互動與投票裡，慢慢抓出誰最不像真人。
             </p>
 
@@ -200,7 +200,7 @@ export default function HomePage() {
                   />
                   <RuleItem
                     title="發言限制"
-                    text="每輪可先寫好自己的發言草稿，輪到自己時才能送出；單次最多 300 字，禁止透露真實生活資訊、聯絡方式或明示自己是 AI。"
+                    text="每輪可先寫好自己的發言草稿，輪到自己時才能送出；單次最多 300 字，禁止透露真實生活資訊、聯絡方式或明示自己的身分。"
                   />
                   <RuleItem
                     title="投票淘汰"
@@ -221,7 +221,7 @@ export default function HomePage() {
             <div className="mt-6 grid gap-4 md:grid-cols-3">
               <FeatureCard title="一起鬥嘴" text="每輪都像朋友輪流講故事，靠語氣、細節和反應找出不對勁的人。" />
               <FeatureCard title="身份代入" text="每位玩家都會拿到虛擬名稱和人設，不用演太大，也能很有戲。" />
-              <FeatureCard title="自然互動" text="AI 也會用比較像真人聊天的方式參戰，讓整場更像真的在玩桌遊。" />
+              <FeatureCard title="自然互動" text="AI 會用比較像真人聊天的方式參戰，讓整場更像真的在玩桌遊。" />
             </div>
           </div>
 
@@ -307,7 +307,7 @@ export default function HomePage() {
             <div className="mt-4 rounded-2xl border border-amber-100/10 bg-[#2a1a17]/75 p-4 text-sm text-stone-200/90">
               <p>{connectionText}</p>
               <p className="mt-2 leading-7">
-                後端網址來自 `NEXT_PUBLIC_SOCKET_URL`，部署到 Render 後只要換成 Web Service 網址即可。
+                網站靈感來自Youtube影片"兩個AI混入5個人類，能成功嗎"，創作者"今天沒有故事" MADE BY POMELO。
               </p>
             </div>
 
