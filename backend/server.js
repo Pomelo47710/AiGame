@@ -40,6 +40,12 @@ const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
 
+if (genAI) {
+  console.log("✅ Gemini API Key loaded successfully.");
+} else {
+  console.error("❌ Gemini API Key is missing! AI will use fallback responses.");
+}
+
 const rooms = new Map();
 const socketToPlayer = new Map();
 
@@ -495,17 +501,29 @@ function fallbackAiSpeech(player, round) {
   const profile = formatProfile(player.profile, "summary");
   
   const generic = [
-    `我是${name}，${profile}。目前聽下來大家感覺都還行，我再觀察一下。`,
+    `我是${name}，${profile}目前聽下來大家感覺都還行，我再觀察一下。`,
     `剛聽完大家說的，我目前沒什麼頭緒，我是${name}，${profile}。`,
-    `我是${name}，${profile}。我覺得剛剛某幾個人的說法有點微妙，但我還不確定。`
+    `我覺得剛剛某幾個人的說法有點微妙，但我還不確定，我是${name}。`
+  ];
+
+  const round3Options = [
+    `這題我覺得 AI 應該會回答得很官方吧？我個人是比較看重說話的感覺。`,
+    `人類跟 AI 的差別喔...我覺得是直覺吧？目前我還在看誰比較可疑。`,
+    `我覺得 AI 沒辦法模擬那種隨意的口氣，所以我也在觀察大家的語氣。`
+  ];
+
+  const round4Options = [
+    `最後一輪了，我只能說我絕對是真人，${profile} 這點我前面就提過了。`,
+    `大家信不信隨便啦，反正我身分就是${name}，這幾輪講的也沒變過。`,
+    `到現在我也懶得演了，我就是真的玩家，${profile} 這點很清楚吧。`
   ];
 
   if (round.id === "round_3") {
-    return `這題我覺得 AI 應該會回答得很官方吧？我個人是比較看重說話的感覺啦。`;
+    return round3Options[Math.floor(Math.random() * round3Options.length)];
   }
 
   if (round.id === "round_4") {
-    return `最後一輪了，我只能說我絕對是真人，${profile} 這點我前面就提過了。`;
+    return round4Options[Math.floor(Math.random() * round4Options.length)];
   }
 
   return generic[Math.floor(Math.random() * generic.length)];
