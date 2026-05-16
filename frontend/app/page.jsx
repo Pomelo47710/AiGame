@@ -54,6 +54,11 @@ export default function HomePage() {
     const handleGameError = ({ message }) => {
       setError(message || "發生未預期錯誤。");
     };
+    const handleKicked = ({ message }) => {
+      setRoomState(null);
+      setSession({ roomCode: "", playerId: "" });
+      setError(message || "你已被房主移出房間。");
+    };
 
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
@@ -61,6 +66,7 @@ export default function HomePage() {
     socket.on("room_joined", handleRoomJoined);
     socket.on("room_state", handleRoomState);
     socket.on("game_error", handleGameError);
+    socket.on("kicked_from_room", handleKicked);
 
     return () => {
       socket.off("connect", handleConnect);
@@ -69,6 +75,7 @@ export default function HomePage() {
       socket.off("room_joined", handleRoomJoined);
       socket.off("room_state", handleRoomState);
       socket.off("game_error", handleGameError);
+      socket.off("kicked_from_room", handleKicked);
       socket.disconnect();
     };
   }, [socket]);
@@ -119,6 +126,14 @@ export default function HomePage() {
     });
   };
 
+  const kickPlayer = (targetId) => {
+    socket.emit("kick_player", {
+      roomCode: session.roomCode,
+      playerId: session.playerId,
+      targetId
+    });
+  };
+
   if (roomState && session.roomCode) {
     return (
       <GameRoom
@@ -128,6 +143,7 @@ export default function HomePage() {
         onStartGame={startGame}
         onSendMessage={sendMessage}
         onCastVote={castVote}
+        onKickPlayer={kickPlayer}
       />
     );
   }
@@ -302,3 +318,4 @@ export default function HomePage() {
     </main>
   );
 }
+
