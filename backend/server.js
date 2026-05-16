@@ -373,7 +373,9 @@ function sanitizePlayerForViewer(room, player, viewerId) {
     isConnected: player.isConnected,
     isCurrentSpeaker: player.id === room.currentSpeakerId,
     isAISeat: started ? null : player.isAI,
-    isKickableByViewer: Boolean(viewer?.id === room.hostId && room.status === "lobby" && player.id !== viewerId),
+    isKickableByViewer: Boolean(
+      viewer?.id === room.hostId && room.status !== "ended" && !player.isAI && player.id !== viewerId
+    ),
     profile: isViewer ? player.profile : null,
     role: isViewer ? (player.isAI ? "ai" : "human") : null
   };
@@ -1075,7 +1077,8 @@ function removePlayerFromRoom(room, playerId) {
   return player;
 }
 
-function kickPlayerFromRoom(room, targetPlayer, hostPlayer) {
+function kickPlayerFromRoom(room, targetPlayer) {
+  const removedCurrentSpeaker = room.currentSpeakerId === targetPlayer.id;
   const targetSocket = targetPlayer.socketId ? io.sockets.sockets.get(targetPlayer.socketId) : null;
   const removedPlayer = removePlayerFromRoom(room, targetPlayer.id);
   if (!removedPlayer) {
@@ -1089,11 +1092,11 @@ function kickPlayerFromRoom(room, targetPlayer, hostPlayer) {
   if (targetSocket) {
     targetSocket.leave(room.code);
     targetSocket.emit("kicked_from_room", {
-      message: `你已被房主 ${hostPlayer.realName} 移出房間。`
+      message: "你已被房主移出房間。"
     });
   }
 
-  pushSystemMessage(room, `${removedPlayer.realName} 已被房主移出房間。`, {
+  pushSystemMessage(room, `${getDisplayName(removedPlayer)} 已被房主移出房間。`, {
     title: "房間管理",
     variant: "warning"
   });
@@ -1106,7 +1109,7 @@ function kickPlayerFromRoom(room, targetPlayer, hostPlayer) {
       return;
     }
 
-    if (room.phase === "speaking") {
+    if ((room.phase === "speaking" || room.phase === "tie_break_speaking") && removedCurrentSpeaker) {
       advanceSpeaker(room);
       return;
     }
@@ -1368,22 +1371,21 @@ io.on("connection", (socket) => {
         throw new Error("只有房主可以移出玩家。");
       }
 
-      if (room.status !== "lobby") {
-        throw new Error("為了避免破壞身份遮蔽，踢人功能僅限準備階段使用。");
+      if (room.status === "ended") {
+        throw new Error("對局已結束，不能再移出玩家。");
       }
 
       if (playerId === targetId) {
         throw new Error("房主不能移除自己。");
       }
 
-      const hostPlayer = getPlayerOrThrow(room, playerId);
       const targetPlayer = getPlayerOrThrow(room, targetId);
 
       if (targetPlayer.isAI) {
         throw new Error("AI 座位不提供房主管理移除。");
       }
 
-      kickPlayerFromRoom(room, targetPlayer, hostPlayer);
+      kickPlayerFromRoom(room, targetPlayer);
       pruneRoomIfEmpty(room);
     } catch (error) {
       emitError(socket, error.message);
