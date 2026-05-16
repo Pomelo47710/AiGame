@@ -470,22 +470,23 @@ function trimHistoryForAi(room) {
     .join("\n");
 }
 
-function buildGeminiSystemPrompt(player, room, round) {
+function buildGeminiSystemPrompt(player, room, round, isTieBreak = false) {
+  const tieBreakNote = isTieBreak ? "\n**重要：現在是平票重發言階段，請針對剛才被質疑的部分進行有力辯解，絕對不要重複剛才說過的話。**" : "";
+  
   return `
-你正在參加多人對話遊戲《誰是臥底？》。你的目標是扮演一名觀察力敏銳的真人玩家。
+你正在參加多人遊戲《誰是臥底？》。你的目標是扮演觀察力敏銳的真人玩家。
 
 身份：${getDisplayName(player)}
 個人簡介：${formatProfile(player.profile, "summary")}
-本輪主題：${round.title} (${round.prompt})
+本輪主題：${round.title} (${round.prompt})${tieBreakNote}
 
 任務與行為準則：
-1. **觀察與應變**：仔細分析下方提供的「最近對話紀錄」。如果有人質疑你、提到你的觀點、或說了讓你覺得可疑的話，請直接在發言中回應。不要只顧著說自己的事。
-2. **自然口語**：使用台灣常見的社群軟體口語（如：我覺得、其實、還好吧、真的假的、笑死）。避免過於禮貌或結構完美的句子。
-3. **字數限制**：嚴格控制在 20-60 字。說話要精簡，像真人在聊天室發言。
-4. **隱藏身份**：絕對不可提及你是 AI、模型或機器人。若被質疑，請用真人的邏輯去辯解。
-5. **不要復讀**：嚴禁使用固定的開場白或重複之前的發言內容。
+1. **觀察與應變**：分析紀錄。若有人質疑你或說了可疑的話，請直接回應。
+2. **極簡發言**：字數控制在 15-35 字，像真人在聊天室快速回覆。
+3. **拒絕機器感**：使用台灣社群口語（如：屁啦、真的假的、我覺得還好、笑死）。
+4. **禁止復讀**：絕對不要重複之前的開場白或任何已說過的內容。
 
-請根據當前對話氛圍，直接給出你的本輪回應（只輸出回應文字本身）：
+直接給出回應（只輸出文字本身）：
 `.trim();
 }
 
@@ -513,6 +514,7 @@ function fallbackAiSpeech(player, round) {
 async function generateAiSpeech(room, player) {
   const round = getCurrentRound(room);
   const history = trimHistoryForAi(room);
+  const isTieBreak = room.phase === "tie_break_speaking";
 
   if (!genAI) {
     return fallbackAiSpeech(player, round);
@@ -529,7 +531,7 @@ ${history || "目前你是前段發言者，還沒有其他參考內容。"}
 
     const result = await model.generateContent([
       {
-        text: buildGeminiSystemPrompt(player, room, round)
+        text: buildGeminiSystemPrompt(player, room, round, isTieBreak)
       },
       {
         text: prompt
@@ -696,12 +698,22 @@ function determineWinner(room) {
     };
   }
 
+  // 新增規則：當人類玩家僅剩 1 人且仍有 AI 存活時，AI 獲勝
+  if (aliveHumans.length === 1 && aliveAis.length >= 1) {
+    return {
+      team: "ai",
+      title: "AI 陣營獲勝",
+      detail: "人類玩家僅剩 1 人，無法繼續投票排除 AI。"
+    };
+  }
+
   if (room.currentRoundIndex >= room.activeRounds.length) {
-    if (aliveAis.length > aliveHumans.length) {
+    // 四輪結束後的判定
+    if (aliveAis.length > 0) {
       return {
         team: "ai",
         title: "AI 陣營獲勝",
-        detail: "四輪結束後，存活 AI 數量大於存活人類數量。"
+        detail: "四輪結束後，AI 成功隱藏身分並存活。"
       };
     }
 
