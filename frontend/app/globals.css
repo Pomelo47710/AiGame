@@ -10,10 +10,10 @@ html,
 body {
   min-height: 100%;
   background:
-    radial-gradient(circle at top, rgba(56, 189, 248, 0.16), transparent 28%),
-    radial-gradient(circle at right, rgba(168, 85, 247, 0.12), transparent 24%),
-    #020617;
-  color: #e5eefb;
+    radial-gradient(circle at top, rgba(245, 158, 11, 0.12), transparent 30%),
+    radial-gradient(circle at left, rgba(244, 114, 182, 0.1), transparent 28%),
+    linear-gradient(180deg, #2a1814 0%, #201311 38%, #160d0c 100%);
+  color: #f5e9df;
 }
 
 body {
@@ -22,6 +22,23 @@ body {
     "Segoe UI",
     "Noto Sans TC",
     sans-serif;
+  letter-spacing: 0.01em;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 244, 230, 0.04), transparent 55%),
+    radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.03), transparent 18%);
+  opacity: 0.8;
+}
+
+::selection {
+  background: rgba(251, 191, 36, 0.28);
+  color: #fff7ed;
 }
 
 * {
