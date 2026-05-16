@@ -19,9 +19,24 @@ function getPhaseLabel(room) {
   }
 }
 
-function messageBubbleStyle(type, isSelf) {
-  if (type === "system") {
-    return "border-cyan-400/20 bg-cyan-400/10 text-cyan-50";
+function getSystemMessageStyle(variant) {
+  switch (variant) {
+    case "danger":
+      return "border-rose-300/30 bg-rose-400/10 text-rose-50";
+    case "success":
+      return "border-emerald-300/30 bg-emerald-400/10 text-emerald-50";
+    case "warning":
+      return "border-amber-300/30 bg-amber-400/10 text-amber-50";
+    case "spotlight":
+      return "border-violet-300/30 bg-violet-400/10 text-violet-50";
+    default:
+      return "border-cyan-400/20 bg-cyan-400/10 text-cyan-50";
+  }
+}
+
+function messageBubbleStyle(item, isSelf) {
+  if (item.type === "system") {
+    return getSystemMessageStyle(item.variant);
   }
 
   if (isSelf) {
@@ -31,13 +46,26 @@ function messageBubbleStyle(type, isSelf) {
   return "border-white/10 bg-white/5 text-slate-100";
 }
 
+function profileSummary(profile) {
+  if (!profile) {
+    return "遊戲開始後，這裡會顯示你的虛擬個人簡介。";
+  }
+
+  if (typeof profile === "string") {
+    return profile;
+  }
+
+  return `${profile.interest}。${profile.personality}`;
+}
+
 export default function GameRoom({
   room,
   error,
   isConnected,
   onStartGame,
   onSendMessage,
-  onCastVote
+  onCastVote,
+  onKickPlayer
 }) {
   const [message, setMessage] = useState("");
   const bottomRef = useRef(null);
@@ -130,9 +158,33 @@ export default function GameRoom({
               <p className="mt-2 text-base font-semibold text-white sm:text-lg">
                 {self?.displayName || "尚未同步"}
               </p>
-              <p className="mt-2 text-sm leading-7 text-slate-200">
-                {self?.profile || "遊戲開始後，這裡會顯示你的虛擬個人簡介。"}
-              </p>
+              <p className="mt-2 text-sm leading-7 text-slate-200">{profileSummary(self?.profile)}</p>
+
+              {self?.profile && typeof self.profile === "object" ? (
+                <details className="mt-3 rounded-2xl border border-white/10 bg-slate-950/35 p-3">
+                  <summary className="cursor-pointer text-sm font-medium text-sky-100">
+                    展開完整身份設定
+                  </summary>
+                  <div className="mt-3 grid gap-2 text-sm leading-7 text-slate-200">
+                    <p>
+                      <span className="font-semibold text-white">興趣：</span>
+                      {self.profile.interest}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">工作內容：</span>
+                      {self.profile.work}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">個性：</span>
+                      {self.profile.personality}
+                    </p>
+                    <p>
+                      <span className="font-semibold text-white">互動風格：</span>
+                      {self.profile.socialStyle}
+                    </p>
+                  </div>
+                </details>
+              ) : null}
             </div>
           </div>
         </div>
@@ -177,11 +229,11 @@ export default function GameRoom({
                 return (
                   <article
                     key={item.id}
-                    className={`rounded-2xl border p-3 sm:p-4 ${messageBubbleStyle(item.type, isSelf)}`}
+                    className={`rounded-2xl border p-3 sm:p-4 ${messageBubbleStyle(item, isSelf)}`}
                   >
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-sm font-semibold text-white">
-                        {item.type === "system" ? "系統" : item.speakerName}
+                        {item.type === "system" ? item.title || "系統" : item.speakerName}
                       </p>
                       <p className="shrink-0 text-xs text-slate-300">
                         {new Date(item.createdAt).toLocaleTimeString("zh-TW", {
@@ -190,6 +242,19 @@ export default function GameRoom({
                         })}
                       </p>
                     </div>
+                    {item.type === "system" ? (
+                      <p className="mt-2 inline-flex rounded-full border border-white/10 px-2 py-1 text-[11px] tracking-wide text-white/80">
+                        {item.variant === "danger"
+                          ? "高優先"
+                          : item.variant === "success"
+                            ? "結果"
+                            : item.variant === "warning"
+                              ? "提醒"
+                              : item.variant === "spotlight"
+                                ? "重點"
+                                : "通知"}
+                      </p>
+                    ) : null}
                     <p className="mt-2 whitespace-pre-wrap text-sm leading-7">{item.content}</p>
                   </article>
                 );
@@ -266,14 +331,25 @@ export default function GameRoom({
                         {player.isCurrentSpeaker ? "正在發言" : "等待中"}
                       </p>
                     </div>
-                    <div
-                      className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
-                        player.isAlive
-                          ? "bg-emerald-400/15 text-emerald-200"
-                          : "bg-rose-400/15 text-rose-200"
-                      }`}
-                    >
-                      {player.isAlive ? "Alive" : "Out"}
+                    <div className="flex items-center gap-2">
+                      {player.isKickableByViewer ? (
+                        <button
+                          type="button"
+                          onClick={() => onKickPlayer(player.id)}
+                          className="min-h-10 rounded-xl border border-rose-300/20 bg-rose-400/10 px-3 py-2 text-xs font-semibold text-rose-100 transition hover:bg-rose-400/20"
+                        >
+                          踢出
+                        </button>
+                      ) : null}
+                      <div
+                        className={`inline-flex w-fit rounded-full px-3 py-1 text-xs font-semibold ${
+                          player.isAlive
+                            ? "bg-emerald-400/15 text-emerald-200"
+                            : "bg-rose-400/15 text-rose-200"
+                        }`}
+                      >
+                        {player.isAlive ? "Alive" : "Out"}
+                      </div>
                     </div>
                   </div>
                 </div>
